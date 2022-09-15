@@ -1,0 +1,46 @@
+clear;
+close all;
+clc;
+
+%Generating random input bits
+N = 100000;
+m = randi([0,1],1,N);
+
+%Mapping of information bits
+for i = 1:N
+    if m(i)==0
+        x(i)=sqrt(-1);
+    else
+        x(i)=1;
+    end
+end
+
+BFSK_sim = [];
+BFSK_upper = [];
+BFSK_erfc = [];
+BFSK_qfunc = [];
+
+for EbNodB = 0:1:15
+    EbNo = 10^(EbNodB/10);
+    sigma = sqrt(1/EbNo);
+    n = (1/sqrt(2))*[randn(1,N)+sqrt(-1)*randn(1,N)]; %AWGN Noise
+    rt = x + sigma.*n;
+    mcap = real(rt)>imag(rt);
+    err = (sum(m~=mcap))/N;
+    BFSK_sim = [BFSK_sim err];                         %Simulation
+    erf = 0.5*erfc(sqrt(EbNo/2));
+    BFSK_erfc = [BFSK_erfc erf];                       %Theoretical erfc
+    q = qfunc(sqrt(EbNo));
+    BFSK_qfunc = [BFSK_qfunc q];                       %Theoretical Qfunc
+    upper = 0.5*exp(-EbNo/2);
+    BFSK_upper = [BFSK_upper upper];                   %Chernoff bound
+end
+
+figure
+EbNodB = 0:1:15;
+semilogy(EbNodB, BFSK_sim, "r*-", EbNodB, BFSK_erfc, "mo-", EbNodB, BFSK_qfunc, "b*-", EbNodB, BFSK_upper,"g^-")
+title("BFSK BER");
+xlabel("SNR(Eb/No)");
+ylabel("Bit Error Rate");
+legend('Simulation','Theoretical-erfc','Theoretical-qfunc','Upper_Bound');
+grid on;
